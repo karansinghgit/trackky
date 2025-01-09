@@ -145,34 +145,7 @@ function createCategorySummary(categoryTotals, totalTime) {
   return summaryDiv;
 }
 
-function addDebugControls() {
-  const debugDiv = document.createElement('div');
-  debugDiv.style.marginTop = '20px';
-  debugDiv.style.padding = '10px';
-  debugDiv.style.borderTop = '1px solid var(--divider)';
-  
-  // Add view storage button
-  const viewButton = document.createElement('button');
-  viewButton.textContent = 'View Storage Data';
-  viewButton.className = 'reset-button reset-today';
-  viewButton.onclick = async () => {
-    const data = await chrome.storage.local.get(null);
-    console.log('Current storage data:', data);
-    const pre = document.createElement('pre');
-    pre.textContent = JSON.stringify(data, null, 2);
-    pre.style.whiteSpace = 'pre-wrap';
-    pre.style.fontSize = '12px';
-    debugDiv.appendChild(pre);
-  };
-  
-  debugDiv.appendChild(viewButton);
-  document.body.appendChild(debugDiv);
-}
-
 document.addEventListener("DOMContentLoaded", async () => {
-  // Add this line near the start
-  addDebugControls();
-
   // Debug: Log all storage data
   chrome.storage.local.get(null, function(items) {
     console.log('All storage data:', items);
@@ -350,5 +323,50 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.location.reload();
     }
   });
+
+  // Add this to your DOMContentLoaded event listener
+  document.getElementById('settingsToggle').addEventListener('click', () => {
+    const panel = document.getElementById('settings-panel');
+    panel.classList.toggle('show');
+  });
+
+  // Close settings panel when clicking outside
+  document.addEventListener('click', (event) => {
+    const panel = document.getElementById('settings-panel');
+    const settingsToggle = document.getElementById('settingsToggle');
+    
+    if (!panel.contains(event.target) && !settingsToggle.contains(event.target)) {
+      panel.classList.remove('show');
+    }
+  });
+
+  // Add the View Storage Data button to the settings panel
+  const settingsContent = document.querySelector('.settings-content');
+  const viewStorageButton = document.createElement('button');
+  viewStorageButton.textContent = 'View Storage Data';
+  viewStorageButton.className = 'reset-button reset-today';
+  viewStorageButton.onclick = async () => {
+    const data = await chrome.storage.local.get(null);
+    console.log('Current storage data:', data);
+    const pre = document.createElement('pre');
+    pre.textContent = JSON.stringify(data, null, 2);
+    pre.style.whiteSpace = 'pre-wrap';
+    pre.style.fontSize = '12px';
+    pre.style.marginTop = '8px';
+    
+    // Remove any existing pre elements
+    const existingPre = settingsContent.querySelector('pre');
+    if (existingPre) {
+      existingPre.remove();
+    }
+    
+    settingsContent.appendChild(pre);
+  };
+  
+  // Add the button to the settings panel
+  const debugContainer = document.createElement('div');
+  debugContainer.className = 'setting-item';
+  debugContainer.appendChild(viewStorageButton);
+  settingsContent.appendChild(debugContainer);
 });
     

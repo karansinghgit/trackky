@@ -3,7 +3,7 @@
     "name": "Trackky",
     "version": "1.0",
     "description": "Track and visualize your daily web activity with style",
-    "permissions": ["tabs", "storage", "idle"],
+    "permissions": ["tabs", "storage", "idle", "windows"],
     "background": {
       "service_worker": "background.js"
     },

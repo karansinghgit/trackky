@@ -19,6 +19,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--text);
+  padding-bottom: 64px;
 }
 
 .header {
@@ -368,6 +369,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 16px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
 }
 
 .reset-today {
@@ -378,4 +384,63 @@ body {
 .reset-today:hover {
   background: var(--text-secondary);
   color: white;
+}
+
+/* Add these new styles */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: white;
+  border-top: 1px solid var(--divider);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 100;
+}
+
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  margin: 4px 0;
+  transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.settings-panel {
+  position: fixed;
+  bottom: 48px;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid var(--divider);
+  padding: 16px;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  z-index: 99;
+}
+
+.settings-panel.show {
+  transform: translateY(0);
+}
+
+.credit {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
 } 

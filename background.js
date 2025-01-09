@@ -1,6 +1,7 @@
 let currentTab = null;
 let startTime = null;
 let lastActiveTime = null;
+let activeWindowId = null;
 
 // Add daily tracking
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -10,7 +11,6 @@ let currentDate = new Date().toLocaleDateString();
 async function initializeDailyData() {
   const stored = await chrome.storage.local.get(['dailyData', 'currentDate']);
   if (stored.currentDate !== currentDate) {
-    // New day, reset data
     await chrome.storage.local.set({
       dailyData: {},
       currentDate: currentDate
@@ -18,10 +18,76 @@ async function initializeDailyData() {
   }
 }
 
+// Get the active tab from the active window
+async function getActiveTab() {
+  try {
+    // Get all windows
+    const windows = await chrome.windows.getAll({ populate: true });
+    
+    // Find the focused window
+    const focusedWindow = windows.find(window => window.focused);
+    
+    if (focusedWindow) {
+      // Get the active tab from the focused window
+      const activeTab = focusedWindow.tabs.find(tab => tab.active);
+      if (activeTab && activeTab.url) {
+        return {
+          url: new URL(activeTab.url).hostname,
+          windowId: focusedWindow.id,
+          tabId: activeTab.id
+        };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting active tab:', error);
+    return null;
+  }
+}
+
+// Track time when window focus changes
+chrome.windows.onFocusChanged.addListener(async (windowId) => {
+  try {
+    // Save time for previous tab
+    if (currentTab) {
+      await trackTime();
+    }
+
+    // Reset tracking if no window is focused (windowId === -1)
+    if (windowId === chrome.windows.WINDOW_ID_NONE) {
+      resetTracking();
+      return;
+    }
+
+    // Update active window
+    activeWindowId = windowId;
+    
+    // Get the new active tab
+    const activeTab = await getActiveTab();
+    if (activeTab) {
+      currentTab = activeTab.url;
+      startTime = Date.now();
+      lastActiveTime = startTime;
+      console.log('Window focus changed:', { currentTab, windowId });
+    } else {
+      resetTracking();
+    }
+  } catch (error) {
+    console.error('Error in window focus change:', error);
+    resetTracking();
+  }
+});
+
 // Listen for tab changes
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
-    // Save time for previous tab before switching
+    // Only track if this tab is in the focused window
+    const window = await chrome.windows.get(activeInfo.windowId);
+    if (!window.focused) {
+      return;
+    }
+
+    // Save time for previous tab
     if (currentTab) {
       await trackTime();
     }
@@ -31,7 +97,8 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       currentTab = new URL(tab.url).hostname;
       startTime = Date.now();
       lastActiveTime = startTime;
-      console.log('Tab activated:', { currentTab, startTime });
+      activeWindowId = tab.windowId;
+      console.log('Tab activated:', { currentTab, startTime, windowId: tab.windowId });
     }
   } catch (error) {
     console.error('Error in tab activation:', error);
@@ -42,8 +109,14 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 // Listen for tab updates
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   try {
+    // Only track if this is the active tab in the focused window
     if (changeInfo.status === "complete" && tab.active) {
-      // Save time for previous tab before updating
+      const window = await chrome.windows.get(tab.windowId);
+      if (!window.focused) {
+        return;
+      }
+
+      // Save time for previous tab
       if (currentTab) {
         await trackTime();
       }
@@ -52,7 +125,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         currentTab = new URL(tab.url).hostname;
         startTime = Date.now();
         lastActiveTime = startTime;
-        console.log('Tab updated:', { currentTab, startTime });
+        activeWindowId = tab.windowId;
+        console.log('Tab updated:', { currentTab, startTime, windowId: tab.windowId });
       }
     }
   } catch (error) {
