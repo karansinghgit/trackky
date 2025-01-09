@@ -1,6 +1,6 @@
 let currentTab = null;
 let startTime = null;
-const data = {};
+let lastActiveTime = null;
 
 // Add daily tracking
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -20,69 +20,155 @@ async function initializeDailyData() {
 
 // Listen for tab changes
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  await trackTime();
-  const tab = await chrome.tabs.get(activeInfo.tabId);
-  if (tab.url) {
-    currentTab = new URL(tab.url).hostname;
-    startTime = Date.now();
+  try {
+    // Save time for previous tab before switching
+    if (currentTab) {
+      await trackTime();
+    }
+    
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    if (tab.url) {
+      currentTab = new URL(tab.url).hostname;
+      startTime = Date.now();
+      lastActiveTime = startTime;
+      console.log('Tab activated:', { currentTab, startTime });
+    }
+  } catch (error) {
+    console.error('Error in tab activation:', error);
+    resetTracking();
   }
 });
 
 // Listen for tab updates
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && tab.active) {
-    await trackTime();
-    if (tab.url) {
-      currentTab = new URL(tab.url).hostname;
-      startTime = Date.now();
+  try {
+    if (changeInfo.status === "complete" && tab.active) {
+      // Save time for previous tab before updating
+      if (currentTab) {
+        await trackTime();
+      }
+      
+      if (tab.url) {
+        currentTab = new URL(tab.url).hostname;
+        startTime = Date.now();
+        lastActiveTime = startTime;
+        console.log('Tab updated:', { currentTab, startTime });
+      }
     }
+  } catch (error) {
+    console.error('Error in tab update:', error);
+    resetTracking();
   }
 });
 
+function resetTracking() {
+  currentTab = null;
+  startTime = null;
+  lastActiveTime = null;
+}
+
 // Track time on the current tab
 async function trackTime() {
-  if (currentTab && startTime) {
-    const timeSpent = Date.now() - startTime;
+  try {
+    if (!currentTab || !startTime || !lastActiveTime) {
+      return;
+    }
+
+    const currentTime = Date.now();
+    const timeSpent = currentTime - lastActiveTime;
+    
+    // Ignore invalid time intervals
+    if (timeSpent < 0 || timeSpent > DAY_IN_MS || isNaN(timeSpent)) {
+      console.log('Invalid time interval detected:', {
+        timeSpent,
+        currentTab,
+        startTime,
+        lastActiveTime,
+        currentTime
+      });
+      resetTracking();
+      return;
+    }
+    
+    const today = new Date().toLocaleDateString();
     const { dailyData = {} } = await chrome.storage.local.get('dailyData');
     
-    dailyData[currentTab] = (dailyData[currentTab] || 0) + timeSpent;
-    
-    // Store historical data
-    const date = new Date().toLocaleDateString();
-    const { historicalData = {} } = await chrome.storage.local.get('historicalData');
-    
-    if (!historicalData[date]) {
-      historicalData[date] = {};
+    if (!dailyData[today]) {
+      dailyData[today] = {};
     }
-    historicalData[date][currentTab] = (historicalData[date][currentTab] || 0) + timeSpent;
     
-    // Clean up data older than 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    if (timeSpent > 0) {
+      dailyData[today][currentTab] = (dailyData[today][currentTab] || 0) + timeSpent;
+      
+      await chrome.storage.local.set({ 
+        dailyData: dailyData,
+        currentDate: today
+      });
+      
+      console.log('Updated time:', {
+        site: currentTab,
+        timeSpent,
+        total: dailyData[today][currentTab]
+      });
+    }
     
-    Object.keys(historicalData).forEach(date => {
-      if (new Date(date) < thirtyDaysAgo) {
-        delete historicalData[date];
-      }
-    });
-    
-    await chrome.storage.local.set({ dailyData, historicalData });
+    lastActiveTime = currentTime;
+  } catch (error) {
+    console.error('Error in trackTime:', error);
+    resetTracking();
   }
 }
 
-// Check for day change periodically
+// Check for day change and system inactivity
 setInterval(async () => {
-  const newDate = new Date().toLocaleDateString();
-  if (newDate !== currentDate) {
-    currentDate = newDate;
-    await initializeDailyData();
+  try {
+    // Track time for current tab periodically
+    if (currentTab) {
+      await trackTime();
+    }
+
+    const newDate = new Date().toLocaleDateString();
+    if (newDate !== currentDate) {
+      currentDate = newDate;
+      await initializeDailyData();
+    }
+  } catch (error) {
+    console.error('Error in interval check:', error);
+    resetTracking();
   }
-}, 60000); // Check every minute
+}, 1000); // Check every second for more accurate tracking
+
+// Listen for system suspend/resume
+chrome.idle.onStateChanged.addListener(async (state) => {
+  console.log('System state changed:', {
+    state,
+    currentTab,
+    startTime,
+    lastActiveTime
+  });
+  
+  try {
+    if (state === 'active') {
+      startTime = Date.now();
+      lastActiveTime = startTime;
+    } else {
+      if (currentTab) {
+        await trackTime();
+      }
+      resetTracking();
+    }
+  } catch (error) {
+    console.error('Error in idle state change:', error);
+    resetTracking();
+  }
+});
 
 // Initialize on startup
 initializeDailyData();
 
 // Listen for browser closure
 chrome.runtime.onSuspend.addListener(async () => {
-  await trackTime();
+  if (currentTab) {
+    await trackTime();
+  }
 });

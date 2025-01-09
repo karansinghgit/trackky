@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Trackky</title>
+  <title>trackky</title>
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500&display=swap" rel="stylesheet">
 </head>
@@ -12,7 +12,7 @@
         <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#1a73e8" stroke-width="2"/>
         <path d="M12 6V12L16 14" stroke="#1a73e8" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <span class="logo-text">Trackky</span>
+      <span class="logo-text">trackky</span>
     </div>
     <button id="viewToggle" class="view-toggle">View Calendar</button>
   </div>
@@ -39,6 +39,21 @@
       <button id="nextMonth" class="month-nav">&rarr;</button>
     </div>
     <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+  
+  <div id="settings-view" class="settings-view">
+    <h3>Settings</h3>
+    <div class="setting-item">
+      <label for="dateFormat">Date Format:</label>
+      <select id="dateFormat" class="styled-select">
+        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+      </select>
+    </div>
+    <div class="setting-item">
+      <button id="resetTodayData" class="reset-button reset-today">Reset Today's Data</button>
+      <button id="resetData" class="reset-button">Reset All Data</button>
+    </div>
   </div>
   
   <script src="categories.js"></script>

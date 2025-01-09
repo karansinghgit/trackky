@@ -342,4 +342,40 @@ body {
 .empty-text {
   font-size: 14px;
   font-weight: 500;
+}
+
+.reset-button {
+  font-family: 'Google Sans', sans-serif;
+  font-size: 14px;
+  padding: 8px 16px;
+  border: 1px solid #dc3545;
+  background: white;
+  color: #dc3545;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.reset-button:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reset-today {
+  border-color: var(--text-secondary);
+  color: var(--text-secondary);
+}
+
+.reset-today:hover {
+  background: var(--text-secondary);
+  color: white;
 } 

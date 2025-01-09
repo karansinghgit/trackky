@@ -145,7 +145,39 @@ function createCategorySummary(categoryTotals, totalTime) {
   return summaryDiv;
 }
 
+function addDebugControls() {
+  const debugDiv = document.createElement('div');
+  debugDiv.style.marginTop = '20px';
+  debugDiv.style.padding = '10px';
+  debugDiv.style.borderTop = '1px solid var(--divider)';
+  
+  // Add view storage button
+  const viewButton = document.createElement('button');
+  viewButton.textContent = 'View Storage Data';
+  viewButton.className = 'reset-button reset-today';
+  viewButton.onclick = async () => {
+    const data = await chrome.storage.local.get(null);
+    console.log('Current storage data:', data);
+    const pre = document.createElement('pre');
+    pre.textContent = JSON.stringify(data, null, 2);
+    pre.style.whiteSpace = 'pre-wrap';
+    pre.style.fontSize = '12px';
+    debugDiv.appendChild(pre);
+  };
+  
+  debugDiv.appendChild(viewButton);
+  document.body.appendChild(debugDiv);
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+  // Add this line near the start
+  addDebugControls();
+
+  // Debug: Log all storage data
+  chrome.storage.local.get(null, function(items) {
+    console.log('All storage data:', items);
+  });
+
   const dataDiv = document.getElementById("data");
   const dateInfo = document.getElementById("dateInfo");
   const viewToggle = document.getElementById("viewToggle");
@@ -157,6 +189,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   calendarView.style.display = 'none';
   
   // Set current date
+  const today = new Date().toLocaleDateString();
   dateInfo.textContent = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -164,7 +197,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     day: 'numeric' 
   });
 
-  const { dailyData, historicalData = {} } = await chrome.storage.local.get(['dailyData', 'historicalData']);
+  const { dailyData = {}, historicalData = {} } = await chrome.storage.local.get(['dailyData', 'historicalData']);
+  console.log('Daily data for today:', dailyData[today]); // Debug log
 
   // Create calendar grid
   createCalendarGrid(historicalData);
@@ -201,9 +235,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateCalendarHeader();
 
   // Rest of your existing code for displaying daily data
-  if (dailyData && Object.keys(dailyData).length > 0) {
-    const sortedData = sortWebsites(dailyData);
-    const totalTime = Object.values(dailyData).reduce((a, b) => a + b, 0);
+  if (dailyData[today] && Object.keys(dailyData[today]).length > 0) {
+    const todayData = dailyData[today];
+    const sortedData = sortWebsites(todayData);
+    const totalTime = Object.values(todayData).reduce((a, b) => a + (isNaN(b) ? 0 : b), 0);
+    
+    console.log('Sorted data:', sortedData); // Debug log
+    console.log('Total time:', totalTime); // Debug log
     
     // Add total time
     const totalDiv = document.createElement("div");
@@ -212,7 +250,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     dataDiv.appendChild(totalDiv);
     
     // Add category summary
-    const categoryTotals = calculateCategoryTotals(dailyData);
+    const categoryTotals = calculateCategoryTotals(todayData);
     const categorySummary = createCategorySummary(categoryTotals, totalTime);
     dataDiv.appendChild(categorySummary);
     
@@ -228,6 +266,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Add individual sites with categories
     for (const [site, time] of Object.entries(sortedData)) {
+      if (isNaN(time)) {
+        console.log('Skipping NaN time for site:', site);
+        continue;
+      }
+
       const div = document.createElement("div");
       div.className = "website";
       
@@ -279,5 +322,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     `;
     dataDiv.appendChild(emptyState);
   }
+
+  // Add this to your DOMContentLoaded event listener
+  document.getElementById('resetData').addEventListener('click', async () => {
+    if (confirm('Are you sure you want to reset all tracking data? This cannot be undone.')) {
+      await chrome.storage.local.clear();
+      window.location.reload();
+    }
+  });
+
+  // Add this to your DOMContentLoaded event listener
+  document.getElementById('resetTodayData').addEventListener('click', async () => {
+    if (confirm("Are you sure you want to reset today's tracking data? This cannot be undone.")) {
+      const today = new Date().toLocaleDateString();
+      
+      // Get current data
+      const data = await chrome.storage.local.get(null);
+      console.log('Before reset:', data);
+      
+      // Reset daily data
+      await chrome.storage.local.set({ 
+        dailyData: {},
+        currentDate: today
+      });
+      
+      console.log('After reset:', await chrome.storage.local.get(null));
+      window.location.reload();
+    }
+  });
 });
     
