@@ -85,14 +85,19 @@ async function createCalendarGrid(historicalData) {
     // Get data for this date from either source
     const dayData = historicalData[date] || dailyData[date];
     
-    if (dayData && Object.keys(dayData).length > 0) {
-      // Calculate total time for the day, handling any NaN values
-      const totalTime = Object.values(dayData)
-        .filter(time => !isNaN(time))  // Filter out NaN values
+    if (dayData && dayData.total && Object.keys(dayData.total).length > 0) {
+      // Calculate total time for the day from the total object
+      const totalTime = Object.values(dayData.total)
+        .filter(time => !isNaN(time))
         .reduce((total, time) => total + time, 0);
       
       if (totalTime > 0) {
         cell.classList.add('has-data');
+        
+        // Add click handler for pie chart
+        cell.addEventListener('click', () => {
+          createPieChart(dayData.total, date);
+        });
         
         // Create tooltip with total time
         const tooltip = document.createElement('div');
@@ -180,6 +185,142 @@ function createCategorySummary(categoryTotals, totalTime) {
   return summaryDiv;
 }
 
+// Add this function to create hourly chart
+function createHourlyChart(hourlyData) {
+  const chartDiv = document.createElement('div');
+  chartDiv.className = 'hourly-chart';
+  
+  const chartHeader = document.createElement('div');
+  chartHeader.className = 'chart-header';
+  chartHeader.textContent = 'Hourly Usage';
+  chartDiv.appendChild(chartHeader);
+  
+  const hoursContainer = document.createElement('div');
+  hoursContainer.className = 'hours-container';
+  
+  // Create 24 hour bars
+  for (let hour = 0; hour < 24; hour++) {
+    const hourData = hourlyData[hour] || {};
+    const totalForHour = Object.values(hourData)
+      .reduce((sum, time) => sum + (isNaN(time) ? 0 : time), 0);
+    
+    const hourBar = document.createElement('div');
+    hourBar.className = 'hour-bar';
+    
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    
+    // Calculate height based on maximum usage
+    const heightPercentage = Math.min(100, (totalForHour / (2 * 60 * 60 * 1000)) * 100);
+    bar.style.height = `${heightPercentage}%`;
+    
+    // Add tooltip with time
+    const tooltip = document.createElement('div');
+    tooltip.className = 'hour-tooltip';
+    tooltip.innerHTML = `
+      <div>${hour}:00</div>
+      <div>${formatTime(totalForHour)}</div>
+    `;
+    
+    hourBar.appendChild(bar);
+    hourBar.appendChild(tooltip);
+    hoursContainer.appendChild(hourBar);
+  }
+  
+  chartDiv.appendChild(hoursContainer);
+  return chartDiv;
+}
+
+// Add this function to create pie chart
+function createPieChart(data, date) {
+  const modal = document.getElementById('dayModal');
+  const modalDate = document.getElementById('modalDate');
+  const pieChart = document.getElementById('modalPieChart');
+  
+  // Clear previous content
+  pieChart.innerHTML = '';
+  
+  // Set date in header
+  modalDate.textContent = new Date(date).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  });
+  
+  // Calculate category totals
+  const categoryTotals = calculateCategoryTotals(data);
+  const totalTime = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+  
+  if (totalTime === 0) {
+    pieChart.textContent = 'No data available for this day';
+    return;
+  }
+  
+  // Create pie segments
+  let cumulativeAngle = 0;
+  const segments = [];
+  const legend = document.createElement('div');
+  legend.className = 'pie-legend';
+  
+  Object.entries(categoryTotals)
+    .sort(([, a], [, b]) => b - a) // Sort by time spent
+    .forEach(([category, time]) => {
+      if (time === 0) return; // Skip categories with no time
+      
+      const percentage = (time / totalTime) * 100;
+      const angle = (percentage / 100) * 360;
+      
+      const segment = document.createElement('div');
+      segment.className = 'pie-segment';
+      
+      // Create the segment using conic gradient
+      // Each segment shows only its slice and is transparent elsewhere
+      segment.style.background = `conic-gradient(
+        transparent 0deg ${cumulativeAngle}deg,
+        ${CATEGORIES[category].color} ${cumulativeAngle}deg ${cumulativeAngle + angle}deg,
+        transparent ${cumulativeAngle + angle}deg 360deg
+      )`;
+      
+      segments.push(segment);
+      
+      // Add legend item
+      const legendItem = document.createElement('div');
+      legendItem.className = 'pie-legend-item';
+      legendItem.innerHTML = `
+        <div class="pie-legend-dot" style="background: ${CATEGORIES[category].color}"></div>
+        <div>
+          <div>${CATEGORIES[category].name}</div>
+          <div>${formatTime(time)} (${Math.round(percentage)}%)</div>
+        </div>
+      `;
+      legend.appendChild(legendItem);
+      
+      cumulativeAngle += angle;
+    });
+  
+  // Add segments to chart
+  const chartContainer = document.createElement('div');
+  chartContainer.className = 'pie-container';
+  segments.forEach(segment => chartContainer.appendChild(segment));
+  pieChart.appendChild(chartContainer);
+  pieChart.appendChild(legend);
+  
+  // Show modal
+  modal.classList.add('show');
+  
+  // Add close handler
+  document.querySelector('.modal-close').onclick = () => {
+    modal.classList.remove('show');
+  };
+  
+  // Close on outside click
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('show');
+    }
+  };
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   // Debug: Log all storage data
   chrome.storage.local.get(null, function(items) {
@@ -242,83 +383,94 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initialize calendar header
   updateCalendarHeader();
 
-  // Rest of your existing code for displaying daily data
-  if (dailyData[today] && Object.keys(dailyData[today]).length > 0) {
-    const todayData = dailyData[today];
-    const sortedData = sortWebsites(todayData);
-    const totalTime = Object.values(todayData).reduce((a, b) => a + (isNaN(b) ? 0 : b), 0);
-    
-    console.log('Sorted data:', sortedData); // Debug log
-    console.log('Total time:', totalTime); // Debug log
-    
-    // Add total time
-    const totalDiv = document.createElement("div");
-    totalDiv.className = "total-time";
-    totalDiv.textContent = `${formatTime(totalTime)} Today`;
-    dataDiv.appendChild(totalDiv);
-    
-    // Add category summary
-    const categoryTotals = calculateCategoryTotals(todayData);
-    const categorySummary = createCategorySummary(categoryTotals, totalTime);
-    dataDiv.appendChild(categorySummary);
-    
-    // Create websites container
-    const websitesContainer = document.createElement("div");
-    websitesContainer.className = "websites-container";
-    
-    // Add websites header
-    const websitesHeader = document.createElement("div");
-    websitesHeader.className = "websites-header";
-    websitesHeader.textContent = "Websites";
-    websitesContainer.appendChild(websitesHeader);
+  // Handle both old and new data structures
+  if (dailyData[today]) {
+    // Get website data - either from total (new structure) or directly (old structure)
+    const websiteData = dailyData[today].total || dailyData[today];
+    const hourlyData = dailyData[today].hourly || {};
 
-    // Add individual sites with categories
-    for (const [site, time] of Object.entries(sortedData)) {
-      if (isNaN(time)) {
-        console.log('Skipping NaN time for site:', site);
-        continue;
+    if (Object.keys(websiteData).length > 0) {
+      const sortedData = sortWebsites(websiteData);
+      const totalTime = Object.values(websiteData)
+        .filter(time => !isNaN(time))
+        .reduce((total, time) => total + time, 0);
+      
+      // Add total time
+      const totalDiv = document.createElement("div");
+      totalDiv.className = "total-time";
+      totalDiv.textContent = `${formatTime(totalTime)} Today`;
+      dataDiv.appendChild(totalDiv);
+      
+      // Add category summary
+      const categoryTotals = calculateCategoryTotals(websiteData);
+      const categorySummary = createCategorySummary(categoryTotals, totalTime);
+      dataDiv.appendChild(categorySummary);
+      
+      // Add hourly chart if it exists
+      if (Object.keys(hourlyData).length > 0) {
+        const hourlyChart = createHourlyChart(hourlyData);
+        dataDiv.appendChild(hourlyChart);
       }
+      
+      // Create websites container
+      const websitesContainer = document.createElement("div");
+      websitesContainer.className = "websites-container";
+      
+      // Add websites header
+      const websitesHeader = document.createElement("div");
+      websitesHeader.className = "websites-header";
+      websitesHeader.textContent = "Websites";
+      websitesContainer.appendChild(websitesHeader);
 
-      const div = document.createElement("div");
-      div.className = "website";
+      // Add individual sites with categories
+      for (const [site, time] of Object.entries(sortedData)) {
+        if (isNaN(time)) {
+          console.log('Skipping NaN time for site:', site);
+          continue;
+        }
+
+        const div = document.createElement("div");
+        div.className = "website";
+        
+        const siteInfo = document.createElement("div");
+        siteInfo.className = "website-info";
+        
+        // Create favicon element
+        const favicon = document.createElement("img");
+        favicon.className = "website-favicon";
+        favicon.src = `https://www.google.com/s2/favicons?domain=${site}&sz=32`;
+        favicon.alt = "";
+        siteInfo.appendChild(favicon);
+        
+        const textInfo = document.createElement("div");
+        textInfo.className = "website-text";
+        
+        const domain = document.createElement("div");
+        domain.className = "website-domain";
+        domain.textContent = site.replace('www.', '');
+        
+        const timeSpan = document.createElement("div");
+        timeSpan.className = "website-time";
+        timeSpan.textContent = formatTime(time);
+        
+        textInfo.appendChild(domain);
+        textInfo.appendChild(timeSpan);
+        siteInfo.appendChild(textInfo);
+        
+        const category = getCategoryForDomain(site);
+        const categorySpan = document.createElement("span");
+        categorySpan.className = "website-category";
+        categorySpan.textContent = CATEGORIES[category].name;
+        
+        div.appendChild(siteInfo);
+        div.appendChild(categorySpan);
+        websitesContainer.appendChild(div);
+      }
       
-      const siteInfo = document.createElement("div");
-      siteInfo.className = "website-info";
-      
-      // Create favicon element
-      const favicon = document.createElement("img");
-      favicon.className = "website-favicon";
-      favicon.src = `https://www.google.com/s2/favicons?domain=${site}&sz=32`;
-      favicon.alt = "";
-      siteInfo.appendChild(favicon);
-      
-      const textInfo = document.createElement("div");
-      textInfo.className = "website-text";
-      
-      const domain = document.createElement("div");
-      domain.className = "website-domain";
-      domain.textContent = site.replace('www.', '');
-      
-      const timeSpan = document.createElement("div");
-      timeSpan.className = "website-time";
-      timeSpan.textContent = formatTime(time);
-      
-      textInfo.appendChild(domain);
-      textInfo.appendChild(timeSpan);
-      siteInfo.appendChild(textInfo);
-      
-      const category = getCategoryForDomain(site);
-      const categorySpan = document.createElement("span");
-      categorySpan.className = "website-category";
-      categorySpan.textContent = CATEGORIES[category].name;
-      
-      div.appendChild(siteInfo);
-      div.appendChild(categorySpan);
-      websitesContainer.appendChild(div);
+      dataDiv.appendChild(websitesContainer);
     }
-    
-    dataDiv.appendChild(websitesContainer);
   } else {
+    // Show empty state
     const emptyState = document.createElement("div");
     emptyState.className = "empty-state";
     emptyState.innerHTML = `

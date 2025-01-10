@@ -54,13 +54,6 @@
   <div id="settings-panel" class="settings-panel">
     <div class="settings-content">
       <div class="setting-item">
-        <label for="dateFormat">Date Format:</label>
-        <select id="dateFormat" class="styled-select">
-          <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-          <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-        </select>
-      </div>
-      <div class="setting-item">
         <button id="resetTodayData" class="reset-button reset-today">Reset Today's Data</button>
         <button id="resetData" class="reset-button">Reset All Data</button>
       </div>
@@ -69,5 +62,15 @@
   
   <script src="categories.js"></script>
   <script src="popup.js"></script>
+
+  <div id="dayModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalDate"></h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div id="modalPieChart" class="pie-chart"></div>
+    </div>
+  </div>
 </body>
 </html>

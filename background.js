@@ -12,7 +12,12 @@ async function initializeDailyData() {
   const stored = await chrome.storage.local.get(['dailyData', 'currentDate']);
   if (stored.currentDate !== currentDate) {
     await chrome.storage.local.set({
-      dailyData: {},
+      dailyData: {
+        [currentDate]: {
+          hourly: {},
+          total: {}
+        }
+      },
       currentDate: currentDate
     });
   }
@@ -151,7 +156,6 @@ async function trackTime() {
     const currentTime = Date.now();
     const timeSpent = currentTime - lastActiveTime;
     
-    // Ignore invalid time intervals
     if (timeSpent < 0 || timeSpent > DAY_IN_MS || isNaN(timeSpent)) {
       console.log('Invalid time interval detected:', {
         timeSpent,
@@ -165,30 +169,69 @@ async function trackTime() {
     }
     
     const today = new Date().toLocaleDateString();
-    const { dailyData = {} } = await chrome.storage.local.get('dailyData');
+    const currentHour = new Date().getHours();
+    let { dailyData = {} } = await chrome.storage.local.get('dailyData');
     
-    if (!dailyData[today]) {
-      dailyData[today] = {};
+    // Ensure dailyData exists
+    if (!dailyData) {
+      dailyData = {};
+    }
+
+    // Ensure today's data exists with the correct structure
+    if (!dailyData[today] || typeof dailyData[today] !== 'object') {
+      dailyData[today] = {
+        hourly: {},
+        total: {}
+      };
+    }
+
+    // Ensure hourly and total objects exist with correct structure
+    if (!dailyData[today].hourly || typeof dailyData[today].hourly !== 'object') {
+      dailyData[today].hourly = {};
+    }
+    if (!dailyData[today].total || typeof dailyData[today].total !== 'object') {
+      dailyData[today].total = {};
+    }
+
+    // Ensure current hour exists
+    if (!dailyData[today].hourly[currentHour] || typeof dailyData[today].hourly[currentHour] !== 'object') {
+      dailyData[today].hourly[currentHour] = {};
     }
     
-    if (timeSpent > 0) {
-      dailyData[today][currentTab] = (dailyData[today][currentTab] || 0) + timeSpent;
-      
-      await chrome.storage.local.set({ 
-        dailyData: dailyData,
-        currentDate: today
-      });
-      
-      console.log('Updated time:', {
-        site: currentTab,
-        timeSpent,
-        total: dailyData[today][currentTab]
-      });
-    }
+    // Update hourly data
+    dailyData[today].hourly[currentHour][currentTab] = 
+      (dailyData[today].hourly[currentHour][currentTab] || 0) + timeSpent;
+    
+    // Update total for the day
+    dailyData[today].total[currentTab] = 
+      (dailyData[today].total[currentTab] || 0) + timeSpent;
+    
+    await chrome.storage.local.set({ 
+      dailyData: dailyData,
+      currentDate: today
+    });
+    
+    console.log('Updated time:', {
+      site: currentTab,
+      hour: currentHour,
+      timeSpent,
+      hourlyTotal: dailyData[today].hourly[currentHour][currentTab],
+      dailyTotal: dailyData[today].total[currentTab],
+      structure: {
+        hasToday: !!dailyData[today],
+        hasHourly: !!dailyData[today]?.hourly,
+        hasCurrentHour: !!dailyData[today]?.hourly?.[currentHour]
+      }
+    });
     
     lastActiveTime = currentTime;
   } catch (error) {
-    console.error('Error in trackTime:', error);
+    console.error('Error in trackTime:', error, {
+      currentTab,
+      startTime,
+      lastActiveTime,
+      dailyData: await chrome.storage.local.get('dailyData')
+    });
     resetTracking();
   }
 }
