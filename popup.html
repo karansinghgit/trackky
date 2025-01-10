@@ -53,9 +53,40 @@
 
   <div id="settings-panel" class="settings-panel">
     <div class="settings-content">
-      <div class="setting-item">
-        <button id="resetTodayData" class="reset-button reset-today">Reset Today's Data</button>
-        <button id="resetData" class="reset-button">Reset All Data</button>
+      <!-- Settings Menu -->
+      <div class="settings-menu">
+        <button class="menu-item active" data-view="general">
+          <span>General</span>
+        </button>
+        <button class="menu-item" data-view="sites">
+          <span>Site Categories</span>
+        </button>
+      </div>
+
+      <!-- General Settings View -->
+      <div class="settings-view" id="general-view">
+        <div class="setting-item">
+          <div class="view-header">
+            <h3>Data Management</h3>
+          </div>
+          <button id="viewStorageData" class="config-button">View Storage Data</button>
+          <div id="storageDataView" class="storage-data-view"></div>
+          <button id="resetTodayData" class="reset-button reset-today">Reset Today's Data</button>
+          <button id="resetData" class="reset-button">Reset All Data</button>
+        </div>
+      </div>
+
+      <!-- Site Categories View -->
+      <div class="settings-view hidden" id="sites-view">
+        <div class="setting-item">
+          <div class="view-header">
+            <h3>Site Categories</h3>
+            <button id="addDomainRule" class="config-button">Add Site</button>
+          </div>
+          <div id="categoryConfig" class="category-config">
+            <!-- Categories will be populated here -->
+          </div>
+        </div>
       </div>
     </div>
   </div>

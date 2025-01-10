@@ -321,6 +321,144 @@ function createPieChart(data, date) {
   };
 }
 
+// Add these functions to handle category configuration
+function createDomainRule(domain = '', category = 'other') {
+  const ruleDiv = document.createElement('div');
+  ruleDiv.className = 'domain-rule';
+  
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'domain-input';
+  input.value = domain;
+  input.placeholder = 'example.com';
+  
+  // Save on input change
+  input.addEventListener('change', () => {
+    saveCategoryConfig();
+  });
+  
+  const select = document.createElement('select');
+  select.className = 'category-select';
+  Object.entries(CATEGORIES).forEach(([key, value]) => {
+    const option = document.createElement('option');
+    option.value = key;
+    option.textContent = value.name;
+    option.selected = key === category;
+    select.appendChild(option);
+  });
+  
+  // Save on category change
+  select.addEventListener('change', () => {
+    saveCategoryConfig();
+  });
+  
+  const removeButton = document.createElement('button');
+  removeButton.className = 'remove-rule';
+  removeButton.innerHTML = '&times;';
+  removeButton.onclick = (e) => {
+    e.stopPropagation();
+    ruleDiv.remove();
+    saveCategoryConfig();
+  };
+  
+  ruleDiv.appendChild(input);
+  ruleDiv.appendChild(select);
+  ruleDiv.appendChild(removeButton);
+  
+  return ruleDiv;
+}
+
+async function loadCategoryConfig() {
+  const configDiv = document.getElementById('categoryConfig');
+  configDiv.innerHTML = '';
+  
+  const { domainCategories = {} } = await chrome.storage.local.get('domainCategories');
+  const siteCount = Object.keys(domainCategories).length;
+  
+  // Update header to show site count
+  const header = document.querySelector('#sites-view .view-header h3');
+  header.textContent = `Site Categories (${siteCount})`;
+  
+  // Add existing rules
+  Object.entries(domainCategories)
+    .sort(([domain, category]) => domain)
+    .forEach(([domain, category], index) => {
+      const ruleDiv = createDomainRule(domain, category);
+      ruleDiv.setAttribute('data-index', index + 1);
+      configDiv.appendChild(ruleDiv);
+    });
+  
+  // Add empty rule if none exist
+  if (siteCount === 0) {
+    const ruleDiv = createDomainRule();
+    ruleDiv.setAttribute('data-index', '1');
+    configDiv.appendChild(ruleDiv);
+  }
+}
+
+function saveCategoryConfig() {
+  const rules = document.querySelectorAll('.domain-rule');
+  const domainCategories = {};
+  
+  rules.forEach(rule => {
+    const domain = rule.querySelector('.domain-input').value.trim();
+    const category = rule.querySelector('.category-select').value;
+    if (domain) {
+      domainCategories[domain] = category;
+    }
+  });
+  
+  chrome.storage.local.set({ domainCategories });
+}
+
+// Add this function to handle settings menu
+function initializeSettingsPanel() {
+  const settingsToggle = document.getElementById('settingsToggle');
+  const settingsPanel = document.getElementById('settings-panel');
+  const menuItems = document.querySelectorAll('.menu-item');
+  const views = document.querySelectorAll('.settings-view');
+
+  // Menu item click handler
+  menuItems.forEach(item => {
+    item.addEventListener('click', async () => {
+      // Update active state
+      menuItems.forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+
+      // Show corresponding view
+      const viewId = `${item.dataset.view}-view`;
+      views.forEach(view => {
+        view.classList.toggle('hidden', view.id !== viewId);
+      });
+
+      // Load category config if switching to sites view
+      if (item.dataset.view === 'sites') {
+        await loadCategoryConfig();
+      }
+    });
+  });
+
+  // Settings panel toggle
+  settingsToggle.addEventListener('click', async () => {
+    const isOpening = !settingsPanel.classList.contains('show');
+    settingsPanel.classList.toggle('show');
+    
+    if (isOpening) {
+      // Show general view by default when opening
+      menuItems[0].click();
+    }
+  });
+
+  // Close settings panel when clicking outside
+  document.addEventListener('click', (event) => {
+    if (!settingsPanel.contains(event.target) && !settingsToggle.contains(event.target)) {
+      if (settingsPanel.classList.contains('show')) {
+        settingsPanel.classList.remove('show');
+      }
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   // Debug: Log all storage data
   chrome.storage.local.get(null, function(items) {
@@ -511,49 +649,51 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Add this to your DOMContentLoaded event listener
-  document.getElementById('settingsToggle').addEventListener('click', () => {
-    const panel = document.getElementById('settings-panel');
-    panel.classList.toggle('show');
-  });
-
-  // Close settings panel when clicking outside
-  document.addEventListener('click', (event) => {
-    const panel = document.getElementById('settings-panel');
-    const settingsToggle = document.getElementById('settingsToggle');
-    
-    if (!panel.contains(event.target) && !settingsToggle.contains(event.target)) {
-      panel.classList.remove('show');
-    }
-  });
-
-  // Add the View Storage Data button to the settings panel
-  const settingsContent = document.querySelector('.settings-content');
-  const viewStorageButton = document.createElement('button');
-  viewStorageButton.textContent = 'View Storage Data';
-  viewStorageButton.className = 'reset-button reset-today';
-  viewStorageButton.onclick = async () => {
-    const data = await chrome.storage.local.get(null);
-    console.log('Current storage data:', data);
-    const pre = document.createElement('pre');
-    pre.textContent = JSON.stringify(data, null, 2);
-    pre.style.whiteSpace = 'pre-wrap';
-    pre.style.fontSize = '12px';
-    pre.style.marginTop = '8px';
-    
-    // Remove any existing pre elements
-    const existingPre = settingsContent.querySelector('pre');
-    if (existingPre) {
-      existingPre.remove();
-    }
-    
-    settingsContent.appendChild(pre);
-  };
+  // Add storage data viewer
+  const viewStorageButton = document.getElementById('viewStorageData');
+  const storageDataView = document.getElementById('storageDataView');
   
-  // Add the button to the settings panel
-  const debugContainer = document.createElement('div');
-  debugContainer.className = 'setting-item';
-  debugContainer.appendChild(viewStorageButton);
-  settingsContent.appendChild(debugContainer);
+  viewStorageButton.addEventListener('click', async () => {
+    const isShowing = storageDataView.classList.contains('show');
+    
+    if (!isShowing) {
+      const data = await chrome.storage.local.get(null);
+      const pre = document.createElement('pre');
+      pre.textContent = JSON.stringify(data, null, 2);
+      
+      // Clear previous content
+      storageDataView.innerHTML = '';
+      storageDataView.appendChild(pre);
+    }
+    
+    // Toggle view
+    storageDataView.classList.toggle('show');
+    viewStorageButton.textContent = !isShowing ? 'Hide Storage Data' : 'View Storage Data';
+  });
+
+  // Initialize settings panel with proper view handling
+  initializeSettingsPanel();
+
+  // Add domain rule button handler
+  document.getElementById('addDomainRule').addEventListener('click', () => {
+    const configDiv = document.getElementById('categoryConfig');
+    const newRule = createDomainRule();
+    const currentRules = configDiv.querySelectorAll('.domain-rule');
+    newRule.setAttribute('data-index', currentRules.length + 1);
+    
+    if (configDiv.firstChild) {
+      configDiv.insertBefore(newRule, configDiv.firstChild);
+      // Renumber all rules
+      configDiv.querySelectorAll('.domain-rule').forEach((rule, index) => {
+        rule.setAttribute('data-index', index + 1);
+      });
+    } else {
+      configDiv.appendChild(newRule);
+    }
+    saveCategoryConfig();
+  });
+
+  // Initialize domain categories with defaults
+  await initializeDomainCategories();
 });
     

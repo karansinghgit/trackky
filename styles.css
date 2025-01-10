@@ -648,4 +648,155 @@ body {
   height: 12px;
   border-radius: 50%;
   margin-top: 2px;
+}
+
+.category-config {
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.domain-rule {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  padding: 8px 10px 8px 32px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  transition: all 0.2s;
+}
+
+.domain-rule::before {
+  content: attr(data-index);
+  position: absolute;
+  left: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.domain-input,
+.category-select {
+  box-sizing: border-box;
+  height: 32px;
+  font-family: inherit;
+  font-size: 13px;
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+  background: white;
+}
+
+.domain-input {
+  flex: 1;
+  padding: 0 8px;
+}
+
+.category-select {
+  padding: 0 24px 0 8px;
+}
+
+.remove-rule {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-rule:hover {
+  color: #dc3545;
+}
+
+.config-button {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 16px;
+  border: 1px solid var(--primary);
+  border-radius: 20px;
+  background: white;
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.config-button:hover {
+  background: var(--primary-light);
+}
+
+.settings-menu {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.menu-item {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 20px;
+  transition: all 0.2s;
+}
+
+.menu-item:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.menu-item.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.settings-view {
+  display: block;
+}
+
+.settings-view.hidden {
+  display: none;
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.view-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.storage-data-view {
+  display: none;
+  margin: 12px 0;
+}
+
+.storage-data-view.show {
+  display: block;
+}
+
+.storage-data-view pre {
+  font-size: 12px;
+  background: var(--surface);
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
 } 

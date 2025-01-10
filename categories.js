@@ -58,11 +58,45 @@ const CATEGORIES = {
   }
 };
 
+// Sync version for initial categorization
 function getCategoryForDomain(domain) {
-  for (const [categoryKey, category] of Object.entries(CATEGORIES)) {
-    if (category.domains.some(d => domain.includes(d))) {
-      return categoryKey;
+  // Fall back to default categories
+  for (const [category, { domains }] of Object.entries(CATEGORIES)) {
+    if (domains && domains.some(d => domain.includes(d))) {
+      return category;
     }
   }
   return 'OTHER';
+}
+
+// Async version for custom rules
+async function getCustomCategoryForDomain(domain) {
+  const { domainCategories = {} } = await chrome.storage.local.get('domainCategories');
+  
+  // Check custom rules first
+  if (domainCategories[domain]) {
+    return domainCategories[domain];
+  }
+  
+  // Fall back to default categorization
+  return getCategoryForDomain(domain);
+}
+
+// Prefill the domain categories with default ones
+async function initializeDomainCategories() {
+  const { domainCategories = {} } = await chrome.storage.local.get('domainCategories');
+  
+  // Only initialize if empty
+  if (Object.keys(domainCategories).length === 0) {
+    const defaultRules = {};
+    
+    // Add all default domains from CATEGORIES
+    Object.entries(CATEGORIES).forEach(([category, { domains = [] }]) => {
+      domains.forEach(domain => {
+        defaultRules[domain] = category;
+      });
+    });
+    
+    await chrome.storage.local.set({ domainCategories: defaultRules });
+  }
 } 
