@@ -229,21 +229,21 @@ body {
   font-size: 14px;
   border: 1px solid var(--divider);
   border-radius: 8px;
-  cursor: pointer;
+  position: relative;
   transition: all 0.2s ease;
   background: white;
 }
 
-.calendar-day:hover {
-  border-color: var(--primary);
-  background: var(--primary-light);
+.calendar-day.has-data {
+  cursor: pointer;
 }
 
-.calendar-day.has-data {
+.calendar-day.has-data:hover,
+.calendar-day.hover {
   background: var(--primary-light);
   color: var(--primary);
+  border-color: var(--primary);
   font-weight: 500;
-  border-color: var(--primary-light);
 }
 
 .current-day {
@@ -255,18 +255,34 @@ body {
 
 .tooltip {
   position: absolute;
-  background: var(--secondary);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  bottom: 120%;
+  bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  white-space: nowrap;
-  display: none;
-  z-index: 100;
+  background: white;
+  border-radius: 8px;
+  padding: 8px 12px;
   box-shadow: var(--shadow-hover);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.calendar-day:hover .tooltip {
+  opacity: 1;
+}
+
+.tooltip-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.tooltip-time {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
 }
 
 /* Add these new styles */
@@ -433,6 +449,35 @@ body {
   transform: translateY(100%);
   transition: transform 0.3s ease;
   z-index: 99;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.settings-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-panel::-webkit-scrollbar-track {
+  background: var(--surface);
+  border-radius: 4px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb {
+  background: var(--divider);
+  border-radius: 4px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+.settings-panel pre {
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--surface);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
 }
 
 .settings-panel.show {

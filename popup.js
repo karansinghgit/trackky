@@ -56,7 +56,7 @@ function updateCalendarHeader() {
   document.getElementById('currentMonth').textContent = monthName;
 }
 
-function createCalendarGrid(historicalData) {
+async function createCalendarGrid(historicalData) {
   const calendarGrid = document.getElementById('calendarGrid');
   calendarGrid.innerHTML = '';
   
@@ -65,6 +65,9 @@ function createCalendarGrid(historicalData) {
   const firstDay = new Date(year, month, 1);
   const startPadding = firstDay.getDay();
   const dates = getMonthDates(year, month);
+  
+  // Get daily data once for all dates
+  const { dailyData = {} } = await chrome.storage.local.get('dailyData');
   
   // Add padding cells for the start of the month
   for (let i = 0; i < startPadding; i++) {
@@ -79,13 +82,45 @@ function createCalendarGrid(historicalData) {
     cell.className = 'calendar-day';
     cell.textContent = dayNumber;
     
-    if (historicalData && historicalData[date]) {
-      cell.classList.add('has-data');
-      const totalTime = Object.values(historicalData[date]).reduce((a, b) => a + b, 0);
-      const tooltip = document.createElement('div');
-      tooltip.className = 'tooltip';
-      tooltip.textContent = `${date}: ${formatTime(totalTime)}`;
-      cell.appendChild(tooltip);
+    // Get data for this date from either source
+    const dayData = historicalData[date] || dailyData[date];
+    
+    if (dayData && Object.keys(dayData).length > 0) {
+      // Calculate total time for the day, handling any NaN values
+      const totalTime = Object.values(dayData)
+        .filter(time => !isNaN(time))  // Filter out NaN values
+        .reduce((total, time) => total + time, 0);
+      
+      if (totalTime > 0) {
+        cell.classList.add('has-data');
+        
+        // Create tooltip with total time
+        const tooltip = document.createElement('div');
+        tooltip.className = 'tooltip';
+        
+        // Format date for tooltip
+        const tooltipDate = new Date(date);
+        const formattedDate = tooltipDate.toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric'
+        });
+        
+        tooltip.innerHTML = `
+          <div class="tooltip-date">${formattedDate}</div>
+          <div class="tooltip-time">${formatTime(totalTime)}</div>
+        `;
+        cell.appendChild(tooltip);
+        
+        // Add hover indicator
+        cell.addEventListener('mouseenter', () => {
+          cell.classList.add('hover');
+        });
+        
+        cell.addEventListener('mouseleave', () => {
+          cell.classList.remove('hover');
+        });
+      }
     }
     
     // Highlight current day
@@ -194,14 +229,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1);
     updateCalendarHeader();
     const { historicalData = {} } = await chrome.storage.local.get('historicalData');
-    createCalendarGrid(historicalData);
+    await createCalendarGrid(historicalData);
   });
 
   document.getElementById('nextMonth').addEventListener('click', async () => {
     currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1);
     updateCalendarHeader();
     const { historicalData = {} } = await chrome.storage.local.get('historicalData');
-    createCalendarGrid(historicalData);
+    await createCalendarGrid(historicalData);
   });
 
   // Initialize calendar header
