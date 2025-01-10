@@ -155,8 +155,6 @@ body {
   font-size: 12px;
   padding: 4px 12px;
   border-radius: 20px;
-  color: var(--primary);
-  background: var(--primary-light);
   font-weight: 500;
 }
 

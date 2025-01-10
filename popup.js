@@ -198,6 +198,12 @@ function createHourlyChart(hourlyData) {
   const hoursContainer = document.createElement('div');
   hoursContainer.className = 'hours-container';
   
+  // Find the maximum usage across all hours for better scaling
+  const maxUsage = Math.max(...Object.values(hourlyData)
+    .map(hour => Object.values(hour)
+      .reduce((sum, time) => sum + (isNaN(time) ? 0 : time), 0)
+    ));
+
   // Create 24 hour bars
   for (let hour = 0; hour < 24; hour++) {
     const hourData = hourlyData[hour] || {};
@@ -210,8 +216,9 @@ function createHourlyChart(hourlyData) {
     const bar = document.createElement('div');
     bar.className = 'bar';
     
-    // Calculate height based on maximum usage
-    const heightPercentage = Math.min(100, (totalForHour / (2 * 60 * 60 * 1000)) * 100);
+    // Calculate height based on absolute usage (1 hour = 100%)
+    // Multiply by 1.5 to make bars taller while keeping proportions
+    const heightPercentage = Math.min(100, (totalForHour / (1 * 60 * 60 * 1000)) * 100 * 1.5);
     bar.style.height = `${heightPercentage}%`;
     
     // Add tooltip with time
@@ -599,6 +606,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const categorySpan = document.createElement("span");
         categorySpan.className = "website-category";
         categorySpan.textContent = CATEGORIES[category].name;
+        // Add category color styling
+        categorySpan.style.backgroundColor = `${CATEGORIES[category].color}15`; // 15 is hex for 10% opacity
+        categorySpan.style.color = CATEGORIES[category].color;
         
         div.appendChild(siteInfo);
         div.appendChild(categorySpan);

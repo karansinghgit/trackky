@@ -3,13 +3,17 @@ const CATEGORIES = {
     name: 'Work',
     color: '#4CAF50', // Green
     domains: [
-      'github.com',
-      'gitlab.com',
-      'stackoverflow.com',
       'jira.com',
       'docs.google.com',
       'slack.com',
-      'notion.so'
+      'notion.so',
+      'chatgpt.com',
+      'claude.ai',
+      'perplexity.ai',
+      'mail.google.com',
+      'meet.google.com',
+      'startupschool.org',
+      'lu.ma'
     ]
   },
   ENTERTAINMENT: {
@@ -23,32 +27,21 @@ const CATEGORIES = {
       'reddit.com',
       'instagram.com',
       'facebook.com',
-      'twitter.com'
+      'twitter.com',
+      'linkedin.com',
+      'seez.su'
     ]
   },
   LEARNING: {
     name: 'Learning',
     color: '#2196F3', // Blue
     domains: [
-      'coursera.org',
-      'udemy.com',
-      'edx.org',
+      'leetcode.com',
+      'github.com',
+      'github.io',
+      'gitlab.com',
+      'stackoverflow.com',
       'medium.com',
-      'wikipedia.org',
-      'khan-academy.org',
-      'freecodecamp.org'
-    ]
-  },
-  PRODUCTIVITY: {
-    name: 'Productivity',
-    color: '#9C27B0', // Purple
-    domains: [
-      'trello.com',
-      'asana.com',
-      'calendar.google.com',
-      'drive.google.com',
-      'dropbox.com',
-      'evernote.com'
     ]
   },
   OTHER: {
