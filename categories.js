@@ -27,9 +27,8 @@ const CATEGORIES = {
       'reddit.com',
       'instagram.com',
       'facebook.com',
-      'twitter.com',
+      'x.com',
       'linkedin.com',
-      'seez.su'
     ]
   },
   LEARNING: {
@@ -79,17 +78,16 @@ async function getCustomCategoryForDomain(domain) {
 async function initializeDomainCategories() {
   const { domainCategories = {} } = await chrome.storage.local.get('domainCategories');
   
-  // Only initialize if empty
-  if (Object.keys(domainCategories).length === 0) {
-    const defaultRules = {};
-    
-    // Add all default domains from CATEGORIES
-    Object.entries(CATEGORIES).forEach(([category, { domains = [] }]) => {
-      domains.forEach(domain => {
-        defaultRules[domain] = category;
-      });
+  // Get current default rules
+  const defaultRules = {};
+  Object.entries(CATEGORIES).forEach(([category, { domains = [] }]) => {
+    domains.forEach(domain => {
+      defaultRules[domain] = category;
     });
-    
-    await chrome.storage.local.set({ domainCategories: defaultRules });
-  }
+  });
+  
+  // Merge with existing rules, keeping custom rules but updating defaults
+  const updatedRules = { ...defaultRules, ...domainCategories };
+  
+  await chrome.storage.local.set({ domainCategories: updatedRules });
 } 

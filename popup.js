@@ -37,13 +37,23 @@ function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
 
+function formatDate(date) {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 function getMonthDates(year, month) {
   const dates = [];
   const daysInMonth = getDaysInMonth(year, month);
   
   for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    const formattedDate = formatDate(date);
     dates.push({
-      date: new Date(year, month, day).toLocaleDateString(),
+      date: formattedDate,
       dayNumber: day
     });
   }
@@ -86,14 +96,13 @@ async function createCalendarGrid(historicalData) {
     const dayData = historicalData[date] || dailyData[date];
     
     if (dayData && dayData.total && Object.keys(dayData.total).length > 0) {
-      // Calculate total time for the day from the total object
+      cell.classList.add('has-data');
+      
       const totalTime = Object.values(dayData.total)
         .filter(time => !isNaN(time))
         .reduce((total, time) => total + time, 0);
       
       if (totalTime > 0) {
-        cell.classList.add('has-data');
-        
         // Add click handler for pie chart
         cell.addEventListener('click', () => {
           createPieChart(dayData.total, date);
@@ -103,16 +112,15 @@ async function createCalendarGrid(historicalData) {
         const tooltip = document.createElement('div');
         tooltip.className = 'tooltip';
         
-        // Format date for tooltip
-        const tooltipDate = new Date(date);
-        const formattedDate = tooltipDate.toLocaleDateString('en-US', {
+        const tooltipDate = new Date(date.split('/').reverse().join('-'));
+        const formattedTooltipDate = tooltipDate.toLocaleDateString(undefined, {
           weekday: 'short',
           month: 'short',
           day: 'numeric'
         });
         
         tooltip.innerHTML = `
-          <div class="tooltip-date">${formattedDate}</div>
+          <div class="tooltip-date">${formattedTooltipDate}</div>
           <div class="tooltip-time">${formatTime(totalTime)}</div>
         `;
         cell.appendChild(tooltip);
@@ -129,7 +137,7 @@ async function createCalendarGrid(historicalData) {
     }
     
     // Highlight current day
-    if (date === new Date().toLocaleDateString()) {
+    if (date === formatDate(new Date())) {
       cell.classList.add('current-day');
     }
     
@@ -217,8 +225,7 @@ function createHourlyChart(hourlyData) {
     bar.className = 'bar';
     
     // Calculate height based on absolute usage (1 hour = 100%)
-    // Multiply by 1.5 to make bars taller while keeping proportions
-    const heightPercentage = Math.min(100, (totalForHour / (1 * 60 * 60 * 1000)) * 100 * 1.5);
+    const heightPercentage = Math.min(100, (totalForHour / (1 * 60 * 60 * 1000)) * 100 * 1.1);
     bar.style.height = `${heightPercentage}%`;
     
     // Add tooltip with time
@@ -247,12 +254,17 @@ function createPieChart(data, date) {
   // Clear previous content
   pieChart.innerHTML = '';
   
-  // Set date in header
-  modalDate.textContent = new Date(date).toLocaleDateString('en-US', {
+  // Parse DD/MM/YYYY format correctly
+  const [day, month, year] = date.split('/');
+  const dateObj = new Date(year, month - 1, day); // month - 1 because months are 0-based
+  const formattedDate = dateObj.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
+    year: 'numeric'
   });
+  
+  modalDate.textContent = formattedDate;
   
   // Calculate category totals
   const categoryTotals = calculateCategoryTotals(data);
@@ -602,12 +614,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         textInfo.appendChild(timeSpan);
         siteInfo.appendChild(textInfo);
         
-        const category = getCategoryForDomain(site);
+        const category = await getCustomCategoryForDomain(site);
         const categorySpan = document.createElement("span");
         categorySpan.className = "website-category";
         categorySpan.textContent = CATEGORIES[category].name;
-        // Add category color styling
-        categorySpan.style.backgroundColor = `${CATEGORIES[category].color}15`; // 15 is hex for 10% opacity
+        categorySpan.style.backgroundColor = `${CATEGORIES[category].color}15`;
         categorySpan.style.color = CATEGORIES[category].color;
         
         div.appendChild(siteInfo);

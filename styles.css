@@ -233,6 +233,7 @@ body {
 }
 
 .calendar-day.has-data {
+  border: 1px solid var(--primary);
   cursor: pointer;
 }
 
@@ -242,6 +243,7 @@ body {
   color: var(--primary);
   border-color: var(--primary);
   font-weight: 500;
+  cursor: pointer;
 }
 
 .current-day {
@@ -797,4 +799,13 @@ body {
   word-break: break-all;
   max-height: 300px;
   overflow-y: auto;
+}
+
+.calendar-day.current-day {
+  border: 2px solid var(--accent);
+}
+
+/* Add this style for the view storage button */
+#viewStorageData {
+  font-weight: 500;
 } 

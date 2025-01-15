@@ -5,23 +5,85 @@ let activeWindowId = null;
 
 // Add daily tracking
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
-let currentDate = new Date().toLocaleDateString();
 
-// Initialize or load daily data
-async function initializeDailyData() {
-  const stored = await chrome.storage.local.get(['dailyData', 'currentDate']);
-  if (stored.currentDate !== currentDate) {
+function formatDate(date) {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+let currentDate = formatDate(new Date());
+
+// Store data for the current day
+async function storeData(data) {
+  const today = formatDate(new Date());
+  const { dailyData = {}, historicalData = {} } = await chrome.storage.local.get(['dailyData', 'historicalData']);
+  
+  // Check if we need to move today's data to historical
+  const currentDate = await chrome.storage.local.get('currentDate');
+  if (currentDate.currentDate && currentDate.currentDate !== today) {
+    // Move yesterday's data to historical and remove from dailyData
+    const yesterdayData = dailyData[currentDate.currentDate];
+    if (yesterdayData) {
+      historicalData[currentDate.currentDate] = yesterdayData;
+      // Clean up any duplicate entries
+      delete historicalData[today]; // Remove today's date from historical if it exists
+      delete dailyData[currentDate.currentDate]; // Remove old date from daily
+    }
+  }
+  
+  // Update today's data in dailyData only
+  dailyData[today] = {
+    total: data.total || {},
+    hourly: data.hourly || {}
+  };
+  
+  // Remove today's date from historical if it exists
+  delete historicalData[today];
+  
+  // Save everything back to storage
+  await chrome.storage.local.set({
+    dailyData,
+    historicalData,
+    currentDate: today
+  });
+}
+
+// Initialize tracking data
+async function initializeTracking() {
+  const today = new Date().toLocaleDateString();
+  const { dailyData = {}, historicalData = {}, currentDate } = await chrome.storage.local.get(['dailyData', 'historicalData', 'currentDate']);
+  
+  // Clean up any duplicate entries
+  if (historicalData[today]) {
+    delete historicalData[today]; // Remove today from historical
+  }
+  
+  // If it's a new day, move yesterday's data to historical
+  if (currentDate && currentDate !== today && dailyData[currentDate]) {
+    historicalData[currentDate] = dailyData[currentDate];
+    delete dailyData[currentDate];
+    
+    // Clean up dailyData to only contain today
+    Object.keys(dailyData).forEach(date => {
+      if (date !== today) {
+        delete dailyData[date];
+      }
+    });
+    
     await chrome.storage.local.set({
-      dailyData: {
-        [currentDate]: {
-          hourly: {},
-          total: {}
-        }
-      },
-      currentDate: currentDate
+      dailyData,
+      historicalData,
+      currentDate: today
     });
   }
 }
+
+// Call initializeTracking when extension starts
+chrome.runtime.onStartup.addListener(initializeTracking);
+chrome.runtime.onInstalled.addListener(initializeTracking);
 
 // Get the active tab from the active window
 async function getActiveTab() {
@@ -247,7 +309,7 @@ setInterval(async () => {
     const newDate = new Date().toLocaleDateString();
     if (newDate !== currentDate) {
       currentDate = newDate;
-      await initializeDailyData();
+      await initializeTracking();
     }
   } catch (error) {
     console.error('Error in interval check:', error);
@@ -281,11 +343,46 @@ chrome.idle.onStateChanged.addListener(async (state) => {
 });
 
 // Initialize on startup
-initializeDailyData();
+initializeTracking();
 
 // Listen for browser closure
 chrome.runtime.onSuspend.addListener(async () => {
   if (currentTab) {
     await trackTime();
   }
+});
+
+// Add this function to clean up existing data
+async function cleanupStorageData() {
+  const { dailyData = {}, historicalData = {} } = await chrome.storage.local.get(['dailyData', 'historicalData']);
+  const today = formatDate(new Date());
+  
+  // Remove today from historical
+  delete historicalData[today];
+  
+  // Keep only today in dailyData and standardize date format
+  const newDailyData = {};
+  const newHistoricalData = { ...historicalData };
+  
+  Object.entries(dailyData).forEach(([date, data]) => {
+    // Convert any date format to our standard format
+    const standardDate = formatDate(new Date(date.split('/').reverse().join('-')));
+    if (standardDate === today) {
+      newDailyData[standardDate] = data;
+    } else {
+      newHistoricalData[standardDate] = data;
+    }
+  });
+  
+  await chrome.storage.local.set({
+    dailyData: newDailyData,
+    historicalData: newHistoricalData,
+    currentDate: today
+  });
+}
+
+// Run cleanup on install
+chrome.runtime.onInstalled.addListener(async () => {
+  await cleanupStorageData();
+  await initializeTracking();
 });
