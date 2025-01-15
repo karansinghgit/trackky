@@ -569,9 +569,32 @@ body {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  width: 90%;
-  max-width: 320px;
+  width: 280px;
+  max-height: 80vh;
+  overflow-y: auto;
   box-shadow: var(--shadow-hover);
+}
+
+/* Clean scrollbar styling */
+.modal-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  transition: background-color 0.2s;
+}
+
+.modal-content:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(95, 99, 104, 0.3); /* var(--text-secondary) with opacity */
+}
+
+.modal-content:hover::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(95, 99, 104, 0.5); /* slightly darker on hover */
 }
 
 .modal-header {
@@ -599,12 +622,11 @@ body {
 }
 
 .pie-container {
-  position: relative;
-  width: 200px;
-  height: 200px;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
   overflow: hidden;
-  margin: 0 auto;
+  position: relative;
 }
 
 .pie-segment {
@@ -615,10 +637,11 @@ body {
 }
 
 .pie-legend {
-  margin-top: 24px;
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 10px;
+  padding: 0 4px;
 }
 
 .pie-legend-item {
@@ -808,4 +831,116 @@ body {
 /* Add this style for the view storage button */
 #viewStorageData {
   font-weight: 500;
+}
+
+.chart-and-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.top-sites {
+  width: 100%;
+  border-top: 1px solid var(--divider);
+  padding-top: 16px;
+  margin-top: 4px;
+}
+
+.top-sites h3 {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0 0 12px 0;
+}
+
+.sites-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.site-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.site-item:hover {
+  background: white;
+  box-shadow: var(--shadow);
+}
+
+.site-favicon {
+  width: 16px;
+  height: 16px;
+}
+
+.site-info {
+  flex: 1;
+}
+
+.site-domain {
+  font-weight: 500;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.site-time {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* Update chart section styles */
+.chart-section {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-left: 0;
+}
+
+.pie-container {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+}
+
+.pie-legend {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 0 4px;
+}
+
+/* Update scrollbar styles for modal */
+.modal-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--divider) transparent;
+}
+
+.modal-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background-color: var(--text-secondary);
+  border-radius: 2px;
+  opacity: 0.3;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text);
 } 

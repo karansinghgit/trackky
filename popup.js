@@ -256,7 +256,7 @@ function createPieChart(data, date) {
   
   // Parse DD/MM/YYYY format correctly
   const [day, month, year] = date.split('/');
-  const dateObj = new Date(year, month - 1, day); // month - 1 because months are 0-based
+  const dateObj = new Date(year, month - 1, day);
   const formattedDate = dateObj.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -274,6 +274,14 @@ function createPieChart(data, date) {
     pieChart.textContent = 'No data available for this day';
     return;
   }
+  
+  // Remove chartAndStats div and add components directly
+  const chartSection = document.createElement('div');
+  chartSection.className = 'chart-section';
+  
+  // Create pie chart
+  const chartContainer = document.createElement('div');
+  chartContainer.className = 'pie-container';
   
   // Create pie segments
   let cumulativeAngle = 0;
@@ -293,7 +301,6 @@ function createPieChart(data, date) {
       segment.className = 'pie-segment';
       
       // Create the segment using conic gradient
-      // Each segment shows only its slice and is transparent elsewhere
       segment.style.background = `conic-gradient(
         transparent 0deg ${cumulativeAngle}deg,
         ${CATEGORIES[category].color} ${cumulativeAngle}deg ${cumulativeAngle + angle}deg,
@@ -318,11 +325,50 @@ function createPieChart(data, date) {
     });
   
   // Add segments to chart
-  const chartContainer = document.createElement('div');
-  chartContainer.className = 'pie-container';
   segments.forEach(segment => chartContainer.appendChild(segment));
-  pieChart.appendChild(chartContainer);
-  pieChart.appendChild(legend);
+  
+  // Add chart and legend to chart section
+  chartSection.appendChild(chartContainer);
+  chartSection.appendChild(legend);
+  
+  // Create top sites section
+  const topSitesContainer = document.createElement('div');
+  topSitesContainer.className = 'top-sites';
+  topSitesContainer.innerHTML = '<h3>Top Sites</h3>';
+  
+  // Get top 5 sites
+  const topSites = Object.entries(data)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
+  
+  const sitesList = document.createElement('div');
+  sitesList.className = 'sites-list';
+  
+  for (const [site, time] of topSites) {
+    const siteItem = document.createElement('div');
+    siteItem.className = 'site-item';
+    
+    const favicon = document.createElement('img');
+    favicon.src = `https://www.google.com/s2/favicons?domain=${site}&sz=32`;
+    favicon.className = 'site-favicon';
+    
+    const siteInfo = document.createElement('div');
+    siteInfo.className = 'site-info';
+    siteInfo.innerHTML = `
+      <div class="site-domain">${site.replace('www.', '')}</div>
+      <div class="site-time">${formatTime(time)}</div>
+    `;
+    
+    siteItem.appendChild(favicon);
+    siteItem.appendChild(siteInfo);
+    sitesList.appendChild(siteItem);
+  }
+  
+  topSitesContainer.appendChild(sitesList);
+  
+  // Add sections to modal in vertical layout
+  pieChart.appendChild(chartSection);
+  pieChart.appendChild(topSitesContainer);
   
   // Show modal
   modal.classList.add('show');
