@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Trackky",
-    "version": "1.0",
+    "version": "1.1",
     "description": "Track and visualize your daily web activity with style",
     "permissions": ["tabs", "storage", "idle", "windows"],
     "background": {
