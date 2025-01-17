@@ -1,11 +1,7 @@
 # Trackky - Super Time Tracker
 
 <p align="center">
-  <img src="trackky/icon.svg" width="128" height="128" alt="Trackky Logo">
-</p>
-
-<p align="center">
-  <strong>Track and visualize your daily web activity with incredible detail 🚀</strong>
+  <strong>Track, record and visualize your daily web activity with incredible detail 🚀</strong>
 </p>
 
 Trackky is a privacy-focused browser extension that helps you understand how you spend your time online. With a beautiful, Material Design-inspired interface and powerful features, Trackky makes time tracking both insightful and delightful.
@@ -27,7 +23,10 @@ Trackky is a privacy-focused browser extension that helps you understand how you
 
 ## 🖼️ Screenshots
 
-[Add screenshots of your extension here]
+![alt text](assets/image.png)
+![alt text](assets/image2.png)
+![alt text](assets/image3.png)
+![alt text](assets/image4.png)
 
 ## 🚀 Installation
 
